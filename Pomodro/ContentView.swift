@@ -1,8 +1,10 @@
 import SwiftUI
 
 struct ContentView: View {
-    @State private var timeRemaining = 1200 // 20 minutes = 1200 seconds
-    @State private var isTimerRunning = false
+    @State private var workTimeRemaining = 1200
+    @State private var restTimeRemaining = 0
+    @State private var isWorkTimerRunning = false
+    @State private var isRestTimerRunning = false
     @State private var isPaused = false
     @State private var coffeeFill: CGFloat = 0.0
     @State private var timer: Timer?
@@ -13,26 +15,31 @@ struct ContentView: View {
                 .font(.largeTitle)
                 .padding()
 
-            Text("\(timeString(time: timeRemaining))")
+            Text(isRestTimerRunning ? "Rest Time" : "Work Time")
+                .font(.headline)
+
+            Text("\(timeString(time: isRestTimerRunning ? restTimeRemaining : workTimeRemaining))")
                 .font(.system(size: 64))
                 .padding()
 
-            ZStack(alignment: .bottom) {
-                Rectangle()
-                    .frame(width: 100, height: 300)
-                    .foregroundColor(.gray.opacity(0.3))
+            if !isRestTimerRunning {
+                ZStack(alignment: .bottom) {
+                    Rectangle()
+                        .frame(width: 100, height: 300)
+                        .foregroundColor(.gray.opacity(0.3))
 
-                Rectangle()
-                    .frame(width: 100, height: coffeeFill * 300)
-                    .foregroundColor(.brown)
-                    .animation(.easeInOut, value: coffeeFill)
+                    Rectangle()
+                        .frame(width: 100, height: coffeeFill * 300)
+                        .foregroundColor(.brown)
+                        .animation(.easeInOut, value: coffeeFill)
+                }
+                .padding()
             }
-            .padding()
 
             HStack(spacing: 20) {
-                if !isTimerRunning && !isPaused {
+                if !isWorkTimerRunning && !isPaused && !isRestTimerRunning {
                     Button(action: {
-                        self.startTimer()
+                        self.startWorkTimer()
                     }) {
                         HStack {
                             Image(systemName: "play.fill")
@@ -46,7 +53,7 @@ struct ContentView: View {
                     }
                 }
 
-                if isTimerRunning {
+                if isWorkTimerRunning || isRestTimerRunning {
                     Button(action: {
                         self.pauseTimer()
                     }) {
@@ -62,12 +69,12 @@ struct ContentView: View {
                     }
                 }
 
-                if isPaused && !isTimerRunning {
+                if isPaused && !(isWorkTimerRunning || isRestTimerRunning) {
                     Button(action: {
                         self.resumeTimer()
                     }) {
                         HStack {
-                            Image(systemName: "play.fill") // Resume icon
+                            Image(systemName: "play.fill")
                             Text("Resume")
                         }
                         .frame(minWidth: 100)
@@ -78,12 +85,12 @@ struct ContentView: View {
                     }
                 }
 
-                if isTimerRunning || isPaused {
+                if isWorkTimerRunning || isRestTimerRunning || isPaused {
                     Button(action: {
                         self.resetTimer()
                     }) {
                         HStack {
-                            Image(systemName: "arrow.clockwise") // Reset icon
+                            Image(systemName: "arrow.clockwise")
                             Text("Reset")
                         }
                         .frame(minWidth: 100)
@@ -98,46 +105,65 @@ struct ContentView: View {
         }
     }
 
-    func startTimer() {
-        self.isTimerRunning = true
+    func startWorkTimer() {
+        self.isWorkTimerRunning = true
         self.isPaused = false
         self.timer = Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { timer in
-            if self.timeRemaining > 0 {
-                self.timeRemaining -= 1
+            if self.workTimeRemaining > 0 {
+                self.workTimeRemaining -= 1
                 self.updateCoffeeFill()
             } else {
                 timer.invalidate()
-                self.isTimerRunning = false
+                self.isWorkTimerRunning = false
+                self.startRestTimer()
+            }
+        }
+    }
+
+    func startRestTimer() {
+        self.restTimeRemaining = Int.random(in: 60...300)
+        self.isRestTimerRunning = true
+        self.isPaused = false
+        self.timer = Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { timer in
+            if self.restTimeRemaining > 0 {
+                self.restTimeRemaining -= 1
+            } else {
+                timer.invalidate()
+                self.isRestTimerRunning = false
+                self.resetTimer()
             }
         }
     }
 
     func pauseTimer() {
         self.isPaused = true
-        self.isTimerRunning = false
+        self.isWorkTimerRunning = false
+        self.isRestTimerRunning = false
         self.timer?.invalidate()
     }
 
-    // Resume Timer Function
     func resumeTimer() {
         self.isPaused = false
-        self.isTimerRunning = true
-        self.startTimer()
+        if self.workTimeRemaining > 0 {
+            self.startWorkTimer()
+        } else if self.restTimeRemaining > 0 {
+            self.startRestTimer()
+        }
     }
 
-    // Reset Timer Function
     func resetTimer() {
-        self.isTimerRunning = false
+        self.isWorkTimerRunning = false
+        self.isRestTimerRunning = false
         self.isPaused = false
         self.timer?.invalidate()
-        self.timeRemaining = 1200
+        self.workTimeRemaining = 1200
         self.coffeeFill = 0.0
+        self.restTimeRemaining = 0
     }
 
-    // Update Coffee Fill Animation
     func updateCoffeeFill() {
         withAnimation {
-            let progress = CGFloat(1200 - timeRemaining) / 1200
+            let progress = CGFloat(1200 - workTimeRemaining) / 1200
             self.coffeeFill = progress
         }
     }
