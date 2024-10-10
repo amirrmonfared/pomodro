@@ -1,4 +1,5 @@
 import SwiftUI
+import AVFoundation
 
 struct ContentView: View {
     @State private var workTimeRemaining = 1200
@@ -8,6 +9,8 @@ struct ContentView: View {
     @State private var isPaused = false
     @State private var coffeeFill: CGFloat = 0.0
     @State private var timer: Timer?
+
+    @StateObject var soundManager = SoundManager()
 
     var body: some View {
         VStack {
@@ -115,6 +118,7 @@ struct ContentView: View {
             } else {
                 timer.invalidate()
                 self.isWorkTimerRunning = false
+                self.soundManager.playSound()
                 self.startRestTimer()
             }
         }
@@ -130,6 +134,7 @@ struct ContentView: View {
             } else {
                 timer.invalidate()
                 self.isRestTimerRunning = false
+                self.soundManager.playSound()
                 self.resetTimer()
             }
         }
